@@ -7,7 +7,7 @@
 
 An interactive, responsive, and web-based analytical dashboard designed for **Radiotherapy Clinical & Operational Management** (Oncology/Healthcare Analytics). 
 
-🔗 **(GitHub Pages)](https://github.com/laossa-luiz)**
+🔗 **[(GitHub Pages)](https://github.com/laossa-luiz)**
 
 ---
 
