@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Analítico de Gestão em Radioterapia</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            medical: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+              800: '#115e59',
+              900: '#134e4a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #090d16;
+      color: #f1f5f9;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glass-card-hover:hover {
+      border-color: rgba(20, 184, 166, 0.4);
+      box-shadow: 0 10px 25px -5px rgba(20, 184, 166, 0.15);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-teal-500 selection:text-white">
+
+  <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="p-2 bg-teal-600 rounded-xl shadow-lg shadow-teal-500/30 flex items-center justify-center">
+          <i data-lucide="activity" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+            Gestão & Inteligência em Radioterapia
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">OncoRT v3.2</span>
+          </h1>
+          <p class="text-xs text-slate-400">Monitoramento Clínico, Operacional & Aceleradores Lineares</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button id="resetFiltersBtn" onclick="resetFilters()" class="px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all flex items-center gap-1.5 hover:text-white">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          Limpar Filtros
+        </button>
+        <button onclick="exportToCSV()" class="px-3 py-1.5 text-xs font-medium text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-all shadow-md shadow-teal-600/30 flex items-center gap-1.5">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          Exportar Prontuários
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- FILTERS SECTION -->
+    <section class="glass-card rounded-2xl p-5 border border-slate-800 shadow-xl">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="sliders" class="w-4 h-4 text-teal-400"></i>
+          <h2 class="text-sm font-semibold text-slate-200">Filtros Operacionais & Clínicos Multi-Dimensionais</h2>
+        </div>
+        <span id="activeFiltersBadge" class="text-xs text-teal-400 bg-teal-950/60 border border-teal-800/50 px-2.5 py-1 rounded-full font-mono">
+          Carregando registros...
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+        <!-- Filter 1: Period -->
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Período / Ano</label>
+          <select id="filterPeriod" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
+            <option value="ALL">Todos os Anos</option>
+            <option value="2026">Ano 2026</option>
+            <option value="2025">Ano 2025</option>
+            <option value="Q1-2026">1º Trimestre (2026)</option>
+            <option value="Q2-2026">2º Trimestre (2026)</option>
+          </select>
+        </div>
+
+        <!-- Filter 2: Unit -->
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Unidade / Centro</label>
+          <select id="filterUnit" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
+            <option value="ALL">Todas as Unidades</option>
+            <option value="Unidade Central">Unidade Central (Onco-Matriz)</option>
+            <option value="Unidade Zona Sul">Unidade Zona Sul</option>
+            <option value="Centro Norte">Centro Oncológico Norte</option>
+          </select>
+        </div>
+
+        <!-- Filter 3: Site / Pathology -->
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Sítio Tumoral</label>
+          <select id="filterSite" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
+            <option value="ALL">Todos os Sítios</option>
+            <option value="Mama">Mama</option>
+            <option value="Próstata">Próstata</option>
+            <option value="Pulmão / Tórax">Pulmão / Tórax</option>
+            <option value="Cabeça e Pescoço">Cabeça e Pescoço</option>
+            <option value="Pelve / Ginecologia">Pelve / Ginecologia</option>
+            <option value="SNC / Encéfalo">SNC / Encéfalo</option>
+          </select>
+        </div>
+
+        <!-- Filter 4: Technique -->
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Técnica de Radiação</label>
+          <select id="filterTechnique" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
+            <option value="ALL">Todas as Técnicas</option>
+            <option value="VMAT / RapidArc">VMAT / RapidArc</option>
+            <option value="IMRT">IMRT (Intensidade Modulada)</option>
+            <option value="3D-CRT">3D-CRT Conformacional</option>
+            <option value="SBRT / SRS">SBRT / SRS Stereotactic</option>
+            <option value="Braquiterapia">Braquiterapia HDR</option>
+          </select>
+        </div>
+
+        <!-- Filter 5: Accelerator -->
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Acelerador Linear</label>
+          <select id="filterLINAC" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
+            <option value="ALL">Todos os Equipamentos</option>
+            <option value="Elekta Versa HD - AL1">Elekta Versa HD (AL-01)</option>
+            <option value="Varian TrueBeam - AL2">Varian TrueBeam (AL-02)</option>
+            <option value="Varian Halcyon - AL3">Varian Halcyon (AL-03)</option>
+          </select>
+        </div>
+
+        <!-- Filter 6: Payor / Health Insurance -->
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Convênio / Pagador</label>
+          <select id="filterPayor" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
+            <option value="ALL">Todos os Convênios</option>
+            <option value="SUS">SUS (Sistema Único de Saúde)</option>
+            <option value="Bradesco Saúde">Bradesco Saúde</option>
+            <option value="Amil">Amil Resgate/Top</option>
+            <option value="Unimed">Unimed Seguros</option>
+            <option value="Particular / Corp">Particular / Corp</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- KPI CARDS SECTION -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- KPI 1: Active Patients -->
+      <div class="glass-card glass-card-hover p-5 rounded-2xl transition-all duration-300">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Pacientes Ativos</span>
+          <div class="p-2 bg-teal-500/10 rounded-xl border border-teal-500/20 text-teal-400">
+            <i data-lucide="users" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p id="kpiActivePatients" class="text-2xl font-bold text-white font-mono">0</p>
+          <div class="mt-2 flex items-center text-xs font-medium text-emerald-400 gap-1">
+            <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+            <span id="kpiPatientsGrowth">+8.4%</span>
+            <span class="text-slate-500 font-normal">vs mês anterior</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 2: Total Sessions & Average Time -->
+      <div class="glass-card glass-card-hover p-5 rounded-2xl transition-all duration-300">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Sessões Realizadas</span>
+          <div class="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-400">
+            <i data-lucide="zap" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p id="kpiSessionsCount" class="text-2xl font-bold text-white font-mono">0</p>
+          <div class="mt-2 flex items-center text-xs font-medium text-slate-300 gap-1">
+            <span>Tempo Médio/Sessão:</span>
+            <span id="kpiAvgSessionTime" class="font-bold text-teal-300 font-mono">11.4 min</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 3: Waiting Time (Diag to 1st Fraction) -->
+      <div class="glass-card glass-card-hover p-5 rounded-2xl transition-all duration-300">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Fila de Espera Médica</span>
+          <div class="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 text-amber-400">
+            <i data-lucide="clock" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p id="kpiWaitDays" class="text-2xl font-bold text-white font-mono">0.0 dias</p>
+          <div class="mt-2 flex items-center text-xs font-medium text-emerald-400 gap-1">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+            <span class="text-slate-400 font-normal">Meta Portaria SUS (&lt;15d):</span>
+            <span id="kpiWaitStatus" class="font-bold text-emerald-400">Em Dia</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 4: LINAC Occupancy & DQA Pass Rate -->
+      <div class="glass-card glass-card-hover p-5 rounded-2xl transition-all duration-300">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Ocupação & Controle DQA</span>
+          <div class="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-400">
+            <i data-lucide="cpu" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <div class="mt-3">
+          <div class="flex items-baseline justify-between">
+            <p id="kpiOccupancyRate" class="text-2xl font-bold text-white font-mono">0.0%</p>
+            <span class="text-xs text-slate-400">Uptime Global</span>
+          </div>
+          <div class="mt-2 flex items-center justify-between text-xs">
+            <span class="text-emerald-400 font-medium">Conformidade DQA:</span>
+            <span id="kpiDqaPass" class="font-bold text-indigo-300 font-mono">98.9%</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AUTOMATED CLINICAL INSIGHTS BANNER -->
+    <section class="glass-card rounded-2xl p-5 border border-teal-900/40 bg-gradient-to-r from-slate-900 via-teal-950/20 to-slate-900 shadow-lg">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center space-x-2">
+          <div class="p-1.5 bg-teal-500/20 rounded-lg text-teal-400">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+          <h3 class="text-sm font-bold text-teal-200 tracking-wide uppercase">Insights Automáticos de Inteligência em Radioterapia</h3>
+        </div>
+        <span class="text-[10px] uppercase font-bold tracking-widest text-teal-400 bg-teal-900/50 px-2 py-0.5 rounded-md border border-teal-700/40">Análise em Tempo Real</span>
+      </div>
+
+      <div id="insightsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+        <!-- Injected via JS -->
+      </div>
+    </section>
+
+    <!-- CHARTS GRID -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Chart 1: Monthly Sessions Trend (2 cols wide) -->
+      <div class="lg:col-span-2 glass-card rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-200">Evolução Mensal de Sessões & Novos Tratamentos</h3>
+            <p class="text-xs text-slate-400">Volume de frações aplicadas vs admissão de novos pacientes</p>
+          </div>
+          <div class="flex items-center space-x-3 text-xs">
+            <span class="flex items-center gap-1 text-teal-400 font-medium"><span class="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block"></span> Sessões</span>
+            <span class="flex items-center gap-1 text-blue-400 font-medium"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span> Novos Casos</span>
+          </div>
+        </div>
+        <div class="relative w-full h-72">
+          <canvas id="sessionsChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 2: Tumor Site Breakdown (1 col wide) -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-200">Distribuição por Sítio Tumoral</h3>
+            <p class="text-xs text-slate-400">Proporção por topografia oncológica</p>
+          </div>
+        </div>
+        <div class="relative w-full h-72 flex items-center justify-center">
+          <canvas id="siteChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 3: Technique Breakdown -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-200">Volume por Técnica de Radiação</h3>
+            <p class="text-xs text-slate-400">Adoção de VMAT, IMRT, SBRT e 3D</p>
+          </div>
+        </div>
+        <div class="relative w-full h-64">
+          <canvas id="techniqueChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 4: LINAC Occupancy & Downtime -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-200">Aceleradores Lineares (Carga e Uptime)</h3>
+            <p class="text-xs text-slate-400">Horas em tratamento vs manutenção</p>
+          </div>
+        </div>
+        <div class="relative w-full h-64">
+          <canvas id="linacChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 5: Wait Time by Payor -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-200">Fila de Espera Média por Convênio</h3>
+            <p class="text-xs text-slate-400">Tempo (dias) do diagnóstico à 1ª fração</p>
+          </div>
+        </div>
+        <div class="relative w-full h-64">
+          <canvas id="payorWaitChart"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- PATIENT TABLE SECTION -->
+    <section class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+          <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+            <i data-lucide="folder-kanban" class="w-4 h-4 text-teal-400"></i>
+            Prontuários & Planos de Tratamento Ativos
+          </h3>
+          <p class="text-xs text-slate-400">Acompanhamento detalhado de fracionamento, dose e tempo de espera</p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <!-- Search box -->
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+            <input type="text" id="tableSearch" onkeyup="handleSearch()" placeholder="Buscar paciente, ID, médico..." class="pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-500 w-full sm:w-64 transition-all">
+          </div>
+        </div>
+      </div>
+
+      <!-- Table Scrollable Wrapper -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="text-slate-400 font-semibold border-b border-slate-800 bg-slate-900/50">
+            <tr>
+              <th scope="col" class="py-3 px-4 cursor-pointer hover:text-white transition-colors" onclick="sortTable('id')">
+                Prontuário <i data-lucide="arrow-up-down" class="inline w-3 h-3 ml-0.5"></i>
+              </th>
+              <th scope="col" class="py-3 px-4 cursor-pointer hover:text-white transition-colors" onclick="sortTable('paciente')">
+                Paciente <i data-lucide="arrow-up-down" class="inline w-3 h-3 ml-0.5"></i>
+              </th>
+              <th scope="col" class="py-3 px-4">Sítio Tumoral</th>
+              <th scope="col" class="py-3 px-4">Técnica</th>
+              <th scope="col" class="py-3 px-4">Acelerador</th>
+              <th scope="col" class="py-3 px-4 text-center cursor-pointer hover:text-white transition-colors" onclick="sortTable('fracaoAtual')">
+                Frações <i data-lucide="arrow-up-down" class="inline w-3 h-3 ml-0.5"></i>
+              </th>
+              <th scope="col" class="py-3 px-4 text-right cursor-pointer hover:text-white transition-colors" onclick="sortTable('esperaDias')">
+                Espera (Dias) <i data-lucide="arrow-up-down" class="inline w-3 h-3 ml-0.5"></i>
+              </th>
+              <th scope="col" class="py-3 px-4">Convênio</th>
+              <th scope="col" class="py-3 px-4 text-center">Status RT</th>
+              <th scope="col" class="py-3 px-4 text-center">Plano</th>
+            </tr>
+          </thead>
+          <tbody id="patientsTableBody" class="divide-y divide-slate-800/60 font-mono text-slate-300">
+            <!-- Injected via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div class="flex flex-col sm:flex-row items-center justify-between pt-3 text-xs text-slate-400 gap-3 border-t border-slate-800">
+        <span id="tableInfo">Exibindo 0 de 0 prontuários</span>
+        <div class="flex items-center space-x-2">
+          <button id="btnPrevPage" onclick="changePage(-1)" class="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            Anterior
+          </button>
+          <span id="pageIndicator" class="font-semibold text-slate-200">1 / 1</span>
+          <button id="btnNextPage" onclick="changePage(1)" class="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            Próximo
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- PATIENT DETAIL MODAL -->
+  <div id="detailModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-card max-w-xl w-full rounded-2xl border border-slate-700 p-6 shadow-2xl relative space-y-4">
+      <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 border-b border-slate-800 pb-3">
+        <div class="p-2.5 bg-teal-600/20 text-teal-400 rounded-xl border border-teal-500/30">
+          <i data-lucide="file-badge-2" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h3 id="modalTitle" class="text-base font-bold text-white">Plano Radioterápico Integrado</h3>
+          <p id="modalSub" class="text-xs text-slate-400">Prontuário: #RT-0000</p>
+        </div>
+      </div>
+
+      <div id="modalBody" class="space-y-3 text-xs text-slate-300">
+        <!-- Injected via JS -->
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-between items-center">
+        <span class="text-[10px] text-slate-500 font-mono">Conformidade Protocolo ICRU 83/91</span>
+        <button onclick="closeModal()" class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-semibold shadow-md transition-all">
+          Fechar Prontuário
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC ENGINE -->
+  <script>
+    
+    // Radiotherapy Domain Constants
+    const units = ["Unidade Central", "Unidade Zona Sul", "Centro Norte"];
+    const tumorSites = {
+      "Mama": ["Mama Direita (3D/VMAT)", "Mama Esquerda (DIBH VMAT)", "Mama Bilateral pós-mastectomia"],
+      "Próstata": ["Próstata + Vesículas (VMAT)", "Próstata Leito Cirúrgico", "Próstata SBRT Hipofracionado"],
+      "Pulmão / Tórax": ["Pulmão Central (SBRT)", "Pulmão Periférico 3D", "Tórax Mediastino (IMRT)"],
+      "Cabeça e Pescoço": ["Orofaringe (VMAT)", "Laringe (IMRT)", "Cavidade Oral (VMAT)"],
+      "Pelve / Ginecologia": ["Colo Uterino (3D + Braqui)", "Reto Neoadjuvante (VMAT)", "Endométrio Pós-Op"],
+      "SNC / Encéfalo": ["Metástase Cerebral (SRS)", "Glioblastoma (IMRT)", "Meningioma (VMAT)"]
+    };
+
+    const techniques = ["VMAT / RapidArc", "IMRT", "3D-CRT", "SBRT / SRS", "Braquiterapia"];
+    const linacs = ["Elekta Versa HD - AL1", "Varian TrueBeam - AL2", "Varian Halcyon - AL3"];
+    const payors = ["SUS", "Bradesco Saúde", "Amil", "Unimed", "Particular / Corp"];
+    const rtStatuses = ["Em Andamento", "Concluído", "Em Planejamento", "Interrompido"];
+
+    const doctors = ["Dr. Alexandre Castro (Radio-Oncologista)", "Dra. Luciana Ferreira (Radio-Oncologista)", "Dr. Fernando Ribeiro (Radio-Oncologista)"];
+    const physicists = ["MSc. Roberto Nunes (Físico Médico)", "Esp. Camila Vance (Física Médica)", "Dr. Marcelo Paiva (Físico Médico)"];
+
+    const patientNames = [
+      "Maria Eduarda Santos", "João Carlos Oliveira", "Ana Paula Ribeiro", "Antônio José Silva",
+      "Francisca Lima Costa", "Raimundo Nonato Souza", "Tânia Mara Fernandes", "Sérgio Augusto Prado",
+      "Cláudia Regina Martins", "Luiz Gonzaga Pereira", "Camila Beatriz Rocha", "Marcos Vinícius Barbosa",
+      "Helena Maria Fonseca", "José Eduardo Mendes", "Patrícia Cristina Alves", "Gabriel Henrique Dias"
+    ];
+
+    // Seeded Random Generator for Data Reproducibility
+    let seed = 98765;
+    function pseudoRandom() {
+      let x = Math.sin(seed++) * 10000;
+      return x - Math.floor(x);
+    }
+
+    const rawData = [];
+    const startDate = new Date(2025, 0, 1);
+
+    // Generate 160 realistic patient radiation oncology records
+    for (let i = 1; i <= 160; i++) {
+      const unit = units[Math.floor(pseudoRandom() * units.length)];
+      const siteKeys = Object.keys(tumorSites);
+      const site = siteKeys[Math.floor(pseudoRandom() * siteKeys.length)];
+      const subDiagnoses = tumorSites[site];
+      const subDiagnosis = subDiagnoses[Math.floor(pseudoRandom() * subDiagnoses.length)];
+      
+      let tech = techniques[Math.floor(pseudoRandom() * techniques.length)];
+      // SBRT logic override for clarity
+      if (site === "SNC / Encéfalo" && pseudoRandom() > 0.4) tech = "SBRT / SRS";
+      if (site === "Mama" && pseudoRandom() > 0.6) tech = "VMAT / RapidArc";
+
+      const linac = linacs[Math.floor(pseudoRandom() * linacs.length)];
+      const payor = payors[Math.floor(pseudoRandom() * payors.length)];
+      
+      // Status weights: 65% Em Andamento, 22% Concluido, 8% Em Planejamento, 5% Interrompido
+      const rStatus = pseudoRandom();
+      let status = "Em Andamento";
+      if (rStatus > 0.95) status = "Interrompido";
+      else if (rStatus > 0.87) status = "Em Planejamento";
+      else if (rStatus > 0.65) status = "Concluído";
+
+      // Random date between Jan 2025 and Jun 2026
+      const randomDays = Math.floor(pseudoRandom() * 540);
+      const d = new Date(startDate.getTime() + randomDays * 24 * 60 * 60 * 1000);
+      const dateStr = d.toISOString().split('T')[0];
+
+      // Fraction calculation
+      let totalFractions = 25;
+      if (tech === "SBRT / SRS") totalFractions = Math.floor(pseudoRandom() * 3) + 3; // 3 to 5 fractions
+      else if (site === "Mama") totalFractions = pseudoRandom() > 0.5 ? 15 : 25; // Hypofractionated vs Standard
+      else if (site === "Próstata") totalFractions = pseudoRandom() > 0.5 ? 20 : 38;
+      else if (tech === "Braquiterapia") totalFractions = 4;
+
+      let fracaoAtual = Math.floor(pseudoRandom() * totalFractions);
+      if (status === "Concluído") fracaoAtual = totalFractions;
+      if (status === "Em Planejamento") fracaoAtual = 0;
+
+      // Waiting time (days from diagnosis/CT simulation to 1st fraction)
+      let esperaDias = Math.floor(pseudoRandom() * 18) + 5;
+      if (payor === "SUS") esperaDias += Math.floor(pseudoRandom() * 8);
+
+      // Dose calculation in Gy
+      const dosePerFraction = tech === "SBRT / SRS" ? (40 / totalFractions).toFixed(1) : (50 / totalFractions).toFixed(1);
+      const totalDoseGy = (dosePerFraction * totalFractions).toFixed(1);
+
+      rawData.push({
+        id: `PRT-${String(i).padStart(4, '0')}`,
+        dataInicio: dateStr,
+        ano: d.getFullYear().toString(),
+        mes: d.toLocaleString('pt-BR', { month: 'short' }).replace('.', ''),
+        quarter: `Q${Math.floor(d.getMonth() / 3) + 1}-${d.getFullYear()}`,
+        paciente: patientNames[Math.floor(pseudoRandom() * patientNames.length)] + ` (${Math.floor(pseudoRandom()*35 + 40)}a)`,
+        unidade: unit,
+        sitio: site,
+        diagnostico: subDiagnosis,
+        tecnica: tech,
+        acelerador: linac,
+        convenio: payor,
+        status: status,
+        fracaoAtual: fracaoAtual,
+        fracoesTotais: totalFractions,
+        esperaDias: esperaDias,
+        doseGy: totalDoseGy,
+        medico: doctors[Math.floor(pseudoRandom() * doctors.length)],
+        fisico: physicists[Math.floor(pseudoRandom() * physicists.length)],
+        dqaPass: pseudoRandom() > 0.05 ? "Aprovado ( Gamma > 98% )" : "Revisão Física Requerida"
+      });
+    }
+
+    let filteredData = [...rawData];
+    let currentPage = 1;
+    const itemsPerPage = 8;
+    let currentSortColumn = 'esperaDias';
+    let currentSortDirection = 'desc';
+
+    // Chart instances references
+    let sessionsChartInstance = null;
+    let siteChartInstance = null;
+    let techniqueChartInstance = null;
+    let linacChartInstance = null;
+    let payorWaitChartInstance = null;
+
+    function applyFilters() {
+      const period = document.getElementById('filterPeriod').value;
+      const unit = document.getElementById('filterUnit').value;
+      const site = document.getElementById('filterSite').value;
+      const technique = document.getElementById('filterTechnique').value;
+      const linac = document.getElementById('filterLINAC').value;
+      const payor = document.getElementById('filterPayor').value;
+
+      filteredData = rawData.filter(item => {
+        if (period !== 'ALL') {
+          if (period.startsWith('Q')) {
+            if (item.quarter !== period) return false;
+          } else if (item.ano !== period) return false;
+        }
+        if (unit !== 'ALL' && item.unidade !== unit) return false;
+        if (site !== 'ALL' && item.sitio !== site) return false;
+        if (technique !== 'ALL' && item.tecnica !== technique) return false;
+        if (linac !== 'ALL' && item.acelerador !== linac) return false;
+        if (payor !== 'ALL' && item.convenio !== payor) return false;
+
+        return true;
+      });
+
+      // Update badge indicator
+      let activeCount = 0;
+      if (period !== 'ALL') activeCount++;
+      if (unit !== 'ALL') activeCount++;
+      if (site !== 'ALL') activeCount++;
+      if (technique !== 'ALL') activeCount++;
+      if (linac !== 'ALL') activeCount++;
+      if (payor !== 'ALL') activeCount++;
+
+      const badge = document.getElementById('activeFiltersBadge');
+      if (activeCount === 0) {
+        badge.innerText = `Exibindo todos os ${filteredData.length} prontuários`;
+        badge.className = "text-xs text-teal-400 bg-teal-950/60 border border-teal-800/50 px-2.5 py-1 rounded-full font-mono";
+      } else {
+        badge.innerText = `${activeCount} filtro(s) ativo(s) - ${filteredData.length} prontuários encontrados`;
+        badge.className = "text-xs text-amber-400 bg-amber-950/60 border border-amber-800/50 px-2.5 py-1 rounded-full font-mono";
+      }
+
+      currentPage = 1;
+      updateDashboardUI();
+    }
+
+    function resetFilters() {
+      document.getElementById('filterPeriod').value = 'ALL';
+      document.getElementById('filterUnit').value = 'ALL';
+      document.getElementById('filterSite').value = 'ALL';
+      document.getElementById('filterTechnique').value = 'ALL';
+      document.getElementById('filterLINAC').value = 'ALL';
+      document.getElementById('filterPayor').value = 'ALL';
+      document.getElementById('tableSearch').value = '';
+      applyFilters();
+    }
+
+    function updateKPIs() {
+      const activePatients = filteredData.filter(d => d.status === 'Em Andamento');
+      
+      // Total radiation sessions delivered in filtered dataset
+      const totalSessions = filteredData.reduce((acc, curr) => acc + curr.fracaoAtual, 0);
+      
+      // Average wait time from diagnosis to treatment start
+      const avgWait = filteredData.length > 0 
+        ? (filteredData.reduce((acc, curr) => acc + curr.esperaDias, 0) / filteredData.length).toFixed(1) 
+        : '0.0';
+
+      // LINAC occupancy simulation based on patient volume
+      const occupancy = Math.min(98.5, (filteredData.length * 1.85)).toFixed(1);
+
+      document.getElementById('kpiActivePatients').innerText = activePatients.length;
+      document.getElementById('kpiSessionsCount').innerText = totalSessions.toLocaleString('pt-BR');
+      document.getElementById('kpiWaitDays').innerText = `${avgWait} dias`;
+      document.getElementById('kpiOccupancyRate').innerText = `${occupancy}%`;
+
+      const waitBadge = document.getElementById('kpiWaitStatus');
+      if (parseFloat(avgWait) <= 15) {
+        waitBadge.innerText = "Em Conformidade";
+        waitBadge.className = "font-bold text-emerald-400 font-mono";
+      } else {
+        waitBadge.innerText = "Atenção (>15d)";
+        waitBadge.className = "font-bold text-rose-400 font-mono";
+      }
+    }
+
+    function generateInsights() {
+      const container = document.getElementById('insightsContainer');
+      container.innerHTML = '';
+
+      if (filteredData.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-3 text-center py-4 text-xs text-slate-400">
+            Nenhum prontuário encontrado para a combinação de filtros selecionada.
+          </div>
+        `;
+        return;
+      }
+
+      // Insight 1: Most frequent tumor site
+      const siteCounts = {};
+      filteredData.forEach(d => siteCounts[d.sitio] = (siteCounts[d.sitio] || 0) + 1);
+      let topSite = 'N/A';
+      let topSiteVal = 0;
+      Object.entries(siteCounts).forEach(([site, count]) => {
+        if (count > topSiteVal) {
+          topSiteVal = count;
+          topSite = site;
+        }
+      });
+
+      // Insight 2: LINAC with highest load
+      const linacCounts = {};
+      filteredData.forEach(d => linacCounts[d.acelerador] = (linacCounts[d.acelerador] || 0) + d.fracaoAtual);
+      let busiestLinac = 'N/A';
+      let busiestLinacVal = 0;
+      Object.entries(linacCounts).forEach(([linac, val]) => {
+        if (val > busiestLinacVal) {
+          busiestLinacVal = val;
+          busiestLinac = linac.split(' - ')[0];
+        }
+      });
+
+      // Insight 3: High precision tech adoption (VMAT + SBRT)
+      const vmatOrSbrtCount = filteredData.filter(d => d.tecnica.includes('VMAT') || d.tecnica.includes('SBRT')).length;
+      const techAdoptionPct = ((vmatOrSbrtCount / filteredData.length) * 100).toFixed(1);
+
+      const cards = [
+        {
+          title: "Sítio Oncológico Predominante",
+          desc: `O sítio <strong>${topSite}</strong> representa o maior volume clínico atual, com <strong>${topSiteVal} pacientes</strong> (${((topSiteVal/filteredData.length)*100).toFixed(1)}% do filtro).`,
+          icon: "crosshair",
+          color: "border-teal-500/30 text-teal-400"
+        },
+        {
+          title: "Carga de Aceleradores Lineares",
+          desc: `O acelerador <strong>${busiestLinac}</strong> registra maior demanda operacional, totalizando <strong>${busiestLinacVal} frações entregues</strong>.`,
+          icon: "cpu",
+          color: "border-blue-500/30 text-blue-400"
+        },
+        {
+          title: "Tecnologia de Alta Precisão (VMAT/SBRT)",
+          desc: `<strong>${techAdoptionPct}%</strong> dos tratamentos utilizam modulação avançada por feixe dinâmico ou estereotaxia, garantindo maior proteção de tecidos sadios.`,
+          icon: "zap",
+          color: "border-purple-500/30 text-purple-400"
+        }
+      ];
+
+      cards.forEach(card => {
+        const div = document.createElement('div');
+        div.className = `p-3.5 bg-slate-900/80 rounded-xl border ${card.color} flex items-start space-x-3`;
+        div.innerHTML = `
+          <div class="mt-0.5 p-1.5 bg-slate-800 rounded-lg">
+            <i data-lucide="${card.icon}" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-slate-200">${card.title}</h4>
+            <p class="text-[11px] text-slate-400 leading-relaxed mt-0.5">${card.desc}</p>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      lucide.createIcons();
+    }
+
+    function initCharts() {
+      const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#94a3b8', font: { family: 'Inter', size: 10 } } },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            titleColor: '#f8fafc',
+            bodyColor: '#cbd5e1',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 8
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(51, 65, 85, 0.3)' } },
+          y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(51, 65, 85, 0.3)' } }
+        }
+      };
+
+      // 1. Monthly Sessions Chart
+      const ctxSess = document.getElementById('sessionsChart').getContext('2d');
+      sessionsChartInstance = new Chart(ctxSess, {
+        type: 'line',
+        data: { labels: [], datasets: [] },
+        options: { ...commonOptions, interaction: { mode: 'index', intersect: false } }
+      });
+
+      // 2. Tumor Site Donut Chart
+      const ctxSite = document.getElementById('siteChart').getContext('2d');
+      siteChartInstance = new Chart(ctxSite, {
+        type: 'doughnut',
+        data: { labels: [], datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } },
+          cutout: '65%'
+        }
+      });
+
+      // 3. Technique Bar Chart
+      const ctxTech = document.getElementById('techniqueChart').getContext('2d');
+      techniqueChartInstance = new Chart(ctxTech, {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: { ...commonOptions, indexAxis: 'y' }
+      });
+
+      // 4. LINAC Occupancy Chart
+      const ctxLinac = document.getElementById('linacChart').getContext('2d');
+      linacChartInstance = new Chart(ctxLinac, {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: commonOptions
+      });
+
+      // 5. Payor Wait Time Chart
+      const ctxWait = document.getElementById('payorWaitChart').getContext('2d');
+      payorWaitChartInstance = new Chart(ctxWait, {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: commonOptions
+      });
+    }
+
+    function updateCharts() {
+      // 1. Monthly trend
+      const monthsOrder = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+      const monthlySessions = {};
+      const monthlyPatients = {};
+      monthsOrder.forEach(m => { monthlySessions[m] = 0; monthlyPatients[m] = 0; });
+
+      filteredData.forEach(d => {
+        const mKey = d.mes.charAt(0).toUpperCase() + d.mes.slice(1,3);
+        if (monthlySessions[mKey] !== undefined) {
+          monthlySessions[mKey] += d.fracaoAtual;
+          monthlyPatients[mKey] += 1;
+        }
+      });
+
+      sessionsChartInstance.data = {
+        labels: monthsOrder,
+        datasets: [
+          {
+            label: 'Frações Aplicadas (Sessões)',
+            data: monthsOrder.map(m => monthlySessions[m]),
+            borderColor: '#14b8a6',
+            backgroundColor: 'rgba(20, 184, 166, 0.15)',
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2
+          },
+          {
+            label: 'Novos Pacientes Admitidos',
+            data: monthsOrder.map(m => monthlyPatients[m]),
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2
+          }
+        ]
+      };
+      sessionsChartInstance.update();
+
+      // 2. Tumor Site Distribution
+      const siteMap = {};
+      filteredData.forEach(d => siteMap[d.sitio] = (siteMap[d.sitio] || 0) + 1);
+
+      siteChartInstance.data = {
+        labels: Object.keys(siteMap),
+        datasets: [{
+          data: Object.values(siteMap),
+          backgroundColor: ['#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b'],
+          borderWidth: 0
+        }]
+      };
+      siteChartInstance.update();
+
+      // 3. Technique Breakdown
+      const techMap = {};
+      techniques.forEach(t => techMap[t] = 0);
+      filteredData.forEach(d => techMap[d.tecnica] = (techMap[d.tecnica] || 0) + 1);
+
+      techniqueChartInstance.data = {
+        labels: Object.keys(techMap),
+        datasets: [{
+          label: 'Pacientes por Técnica',
+          data: Object.values(techMap),
+          backgroundColor: '#8b5cf6',
+          borderRadius: 6
+        }]
+      };
+      techniqueChartInstance.update();
+
+      // 4. LINAC Utilization
+      const linacMap = {};
+      linacs.forEach(l => linacMap[l.split(' - ')[0]] = 0);
+      filteredData.forEach(d => {
+        const key = d.acelerador.split(' - ')[0];
+        linacMap[key] = (linacMap[key] || 0) + d.fracaoAtual;
+      });
+
+      linacChartInstance.data = {
+        labels: Object.keys(linacMap),
+        datasets: [{
+          label: 'Frações Entregues por Acelerador',
+          data: Object.values(linacMap),
+          backgroundColor: '#3b82f6',
+          borderRadius: 6
+        }]
+      };
+      linacChartInstance.update();
+
+      // 5. Payor Wait Time Average
+      const payorWaitMap = {};
+      payors.forEach(p => payorWaitMap[p] = { totalDays: 0, count: 0 });
+      filteredData.forEach(d => {
+        if (payorWaitMap[d.convenio]) {
+          payorWaitMap[d.convenio].totalDays += d.esperaDias;
+          payorWaitMap[d.convenio].count += 1;
+        }
+      });
+
+      const avgDaysByPayor = payors.map(p => {
+        const item = payorWaitMap[p];
+        return item.count > 0 ? (item.totalDays / item.count).toFixed(1) : 0;
+      });
+
+      payorWaitChartInstance.data = {
+        labels: payors,
+        datasets: [{
+          label: 'Dias Médios até 1ª Fração',
+          data: avgDaysByPayor,
+          backgroundColor: ['#f59e0b', '#10b981', '#06b6d4', '#6366f1', '#ec4899'],
+          borderRadius: 6
+        }]
+      };
+      payorWaitChartInstance.update();
+    }
+
+    function updateTable() {
+      const tbody = document.getElementById('patientsTableBody');
+      tbody.innerHTML = '';
+
+      // Filter search
+      const searchTerm = document.getElementById('tableSearch').value.toLowerCase();
+      let searchedData = filteredData.filter(d => 
+        d.id.toLowerCase().includes(searchTerm) ||
+        d.paciente.toLowerCase().includes(searchTerm) ||
+        d.sitio.toLowerCase().includes(searchTerm) ||
+        d.medico.toLowerCase().includes(searchTerm) ||
+        d.tecnica.toLowerCase().includes(searchTerm)
+      );
+
+      // Sort
+      searchedData.sort((a, b) => {
+        let valA = a[currentSortColumn];
+        let valB = b[currentSortColumn];
+        if (typeof valA === 'string') {
+          return currentSortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return currentSortDirection === 'asc' ? valA - valB : valB - valA;
+      });
+
+      // Pagination
+      const totalItems = searchedData.length;
+      const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const paginatedData = searchedData.slice(startIndex, startIndex + itemsPerPage);
+
+      if (paginatedData.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" class="py-6 text-center text-slate-500 font-sans">
+              Nenhum prontuário encontrado com os parâmetros informados.
+            </td>
+          </tr>
+        `;
+      } else {
+        paginatedData.forEach(item => {
+          let statusBadge = '';
+          if (item.status === 'Em Andamento') statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-teal-500/10 text-teal-400 border border-teal-500/30">Em Andamento</span>`;
+          else if (item.status === 'Concluído') statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">Concluído</span>`;
+          else if (item.status === 'Em Planejamento') statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30">Planejamento</span>`;
+          else statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/30">Interrompido</span>`;
+
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-800/40 transition-colors cursor-pointer";
+          tr.onclick = () => openModal(item);
+
+          tr.innerHTML = `
+            <td class="py-3 px-4 font-semibold text-teal-300">${item.id}</td>
+            <td class="py-3 px-4 font-sans font-medium text-slate-200">${item.paciente}</td>
+            <td class="py-3 px-4 font-sans text-slate-300">
+              <span class="block font-semibold text-slate-200">${item.sitio}</span>
+              <span class="text-[10px] text-slate-500">${item.diagnostico}</span>
+            </td>
+            <td class="py-3 px-4 font-sans text-slate-300">${item.tecnica}</td>
+            <td class="py-3 px-4 font-sans text-slate-400 text-[11px]">${item.acelerador.split(' - ')[0]}</td>
+            <td class="py-3 px-4 text-center font-bold text-slate-100">${item.fracaoAtual} / ${item.fracoesTotais}</td>
+            <td class="py-3 px-4 text-right ${item.esperaDias > 15 ? 'text-rose-400 font-bold' : 'text-emerald-400'}">${item.esperaDias}d</td>
+            <td class="py-3 px-4 font-sans text-slate-400">${item.convenio}</td>
+            <td class="py-3 px-4 text-center font-sans">${statusBadge}</td>
+            <td class="py-3 px-4 text-center font-sans">
+              <button onclick="event.stopPropagation(); openModalByVal('${item.id}')" class="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-teal-300 transition-colors">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // Update indicators
+      document.getElementById('tableInfo').innerText = `Exibindo ${totalItems > 0 ? startIndex + 1 : 0} até ${Math.min(startIndex + itemsPerPage, totalItems)} de ${totalItems} prontuários`;
+      document.getElementById('pageIndicator').innerText = `${currentPage} / ${totalPages}`;
+      document.getElementById('btnPrevPage').disabled = currentPage === 1;
+      document.getElementById('btnNextPage').disabled = currentPage >= totalPages;
+
+      lucide.createIcons();
+    }
+
+    function handleSearch() {
+      currentPage = 1;
+      updateTable();
+    }
+
+    function sortTable(column) {
+      if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortColumn = column;
+        currentSortDirection = 'asc';
+      }
+      updateTable();
+    }
+
+    function changePage(delta) {
+      currentPage += delta;
+      updateTable();
+    }
+
+    function exportToCSV() {
+      if (filteredData.length === 0) {
+        alert("Não há registros selecionados para exportação.");
+        return;
+      }
+
+      const headers = ["Prontuario", "Paciente", "Unidade", "Sitio", "Diagnostico", "Tecnica", "Acelerador", "FracaoAtual", "FracoesTotais", "EsperaDias", "DoseTotalGy", "Convenio", "Status"];
+      const rows = filteredData.map(d => [
+        d.id, `"${d.paciente}"`, `"${d.unidade}"`, `"${d.sitio}"`, `"${d.diagnostico}"`, `"${d.tecnica}"`, `"${d.acelerador}"`, d.fracaoAtual, d.fracoesTotais, d.esperaDias, d.doseGy, d.convenio, d.status
+      ]);
+
+      const csvContent = "data:text/csv;charset=utf-8," 
+        + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Relatorio_Radioterapia_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function openModal(item) {
+      document.getElementById('modalTitle').innerText = `Prontuário Radioterápico ${item.id}`;
+      document.getElementById('modalSub').innerText = `Paciente: ${item.paciente} | Início: ${item.dataInicio}`;
+
+      const modalBody = document.getElementById('modalBody');
+      modalBody.innerHTML = `
+        <div class="grid grid-cols-2 gap-3 bg-slate-900/80 p-3 rounded-xl border border-slate-800 font-sans">
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">Topografia / Diagnóstico</span>
+            <span class="font-bold text-slate-200 text-sm">${item.sitio}</span>
+            <span class="block text-[11px] text-teal-400 font-medium">${item.diagnostico}</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">Técnica Prescrita</span>
+            <span class="text-slate-200 font-semibold text-xs">${item.tecnica}</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">Acelerador Alocado</span>
+            <span class="text-slate-300 font-medium text-xs">${item.acelerador}</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">Unidade de Tratamento</span>
+            <span class="text-slate-300 font-medium text-xs">${item.unidade}</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">Médico Radio-Oncologista</span>
+            <span class="text-slate-300 font-medium text-xs">${item.medico}</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">Físico Médico Responsável</span>
+            <span class="text-slate-300 font-medium text-xs">${item.fisico}</span>
+          </div>
+        </div>
+
+        <div class="p-3 bg-teal-950/30 border border-teal-800/40 rounded-xl space-y-1.5 font-mono">
+          <div class="flex justify-between items-center">
+            <span class="text-slate-400 text-xs">Progresso de Fracionamento:</span>
+            <span class="font-bold text-teal-300 text-sm">${item.fracaoAtual} / ${item.fracoesTotais} Sessões (${Math.round((item.fracaoAtual/item.fracoesTotais)*100)}%)</span>
+          </div>
+          <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div class="bg-teal-500 h-full rounded-full transition-all" style="width: ${(item.fracaoAtual/item.fracoesTotais)*100}%"></div>
+          </div>
+          <div class="flex justify-between text-xs pt-1">
+            <span class="text-slate-400">Dose Total Prescrita: <strong class="text-slate-100">${item.doseGy} Gy</strong></span>
+            <span class="text-slate-400">Fila Diagnóstico-Tratamento: <strong class="${item.esperaDias > 15 ? 'text-rose-400' : 'text-emerald-400'}">${item.esperaDias} dias</strong></span>
+          </div>
+          <div class="pt-2 border-t border-slate-800/80 flex justify-between items-center text-[11px]">
+            <span class="text-slate-400">Status Controle DQA:</span>
+            <span class="font-bold text-emerald-400">${item.dqaPass}</span>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('detailModal').classList.remove('hidden');
+    }
+
+    function openModalByVal(id) {
+      const item = rawData.find(d => d.id === id);
+      if (item) openModal(item);
+    }
+
+    function closeModal() {
+      document.getElementById('detailModal').classList.add('hidden');
+    }
+
+    function updateDashboardUI() {
+      updateKPIs();
+      generateInsights();
+      updateCharts();
+      updateTable();
+    }
+
+    window.onload = function() {
+      lucide.createIcons();
+      initCharts();
+      applyFilters();
+    };
+  </script>
+</body>
+</html>
